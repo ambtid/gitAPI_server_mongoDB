@@ -1,21 +1,14 @@
-import urllib
 
-import export as export
 from flask import Flask, request, Response, json
-from flask_github_webhook import GithubWebhook
-
-from django.contrib import admin
-
-import os
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 import json
-from github_webhook import Webhook
+import multiprocessing as processing
 from pymongo import MongoClient
-# pprint library is used to make the output look more pretty
-from pymongo import MongoClient
-from pprint import pprint
-# connect to MongoDB, change the << MONGODB URL >> to reflect your own connection string
-import ssl
-import urllib.request
+
+import threading
+
+
 class MongoDBConnection:
     def __init__(self):
         self.connection = None
@@ -28,27 +21,57 @@ class MongoDBConnection:
         self.connection.close()
 
 
-
-# Issue the serverStatus command and print the results
-
-
 app=Flask(__name__)
-webhook=GithubWebhook(app)
+
 
 
 
 @app.route('/github',methods=['POST'])
-def api_gh_message():
-    if request.headers['content-Type'=='applicaion/json']:
-         myinfo= json.dumps(request.json)
+def api_github():
+   if request.headers['content-Type']=='application/json':
 
+       data=json.dumps(request.json)
+       mongo = MongoDBConnection()
+       with mongo:
+           database = mongo.connection["mongoDB"]
+           collection = database["registrations"]
+           collection.insert_one(json.loads(data))
+       return json.dumps(request.json)
+
+
+def build_client_side():
+
+
+    print("welcome to github pulls API ")
+    print("in this project i use rest API from github(webhook) and uplode every pull data to Mongo data-base")
+   # input("to see simple data from all the pulls press on any key")
     mongo = MongoDBConnection()
     with mongo:
         database = mongo.connection["mongoDB"]
         collection = database["registrations"]
-        collection.insert_one(myinfo)
+
+    x = collection.find({}, {"action":"opened","number":1})
+    print(x)
+    for data in x:
+        print(data)
+
+    #input("to see more data from all the pulls and scrennshot press on any key")
+    x = collection.find({}, {"action":"opened","number":1,"pull_request.url":1,"pull_request.title":1,"pull_request.created_at":1})
+    for data in x:
+        print(data)
+
+    img = mpimg.imread('mongoDB.png')
+    imgplot = plt.imshow(img)
+    plt.show()
+
+
+
 
 if __name__ =='__main__':
-    app.run(debug=True )
+    build_client_side()
+    print("the server will start now")
+    app.run(debug=True)
 
-#add update for test
+
+
+
